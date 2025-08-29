@@ -469,22 +469,37 @@
                 const gradientId = 'goatGradient';
                 const gradientDef = createGradientDefinition(gradientId, currentGradientStart, currentGradientEnd, currentGradientDirection);
                 
-                // Add defs section with gradient if it doesn't exist
+                // Add defs section with gradient - simpler approach
                 if (coloredSvg.includes('<defs>')) {
-                    coloredSvg = coloredSvg.replace('<defs>', `<defs>${gradientDef}`);
+                    coloredSvg = coloredSvg.replace('</defs>', `${gradientDef}</defs>`);
                 } else {
-                    coloredSvg = coloredSvg.replace('<svg', `<svg><defs>${gradientDef}</defs><svg`).replace('version="1.1" xmlns="http://www.w3.org/2000/svg"', '');
-                    coloredSvg = coloredSvg.replace('<svg>', '').replace('</svg><svg', '<svg version="1.1" xmlns="http://www.w3.org/2000/svg"');
+                    // Insert defs right after the opening svg tag
+                    coloredSvg = coloredSvg.replace(
+                        '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="1000" height="1000">', 
+                        `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="1000" height="1000"><defs>${gradientDef}</defs>`
+                    );
                 }
                 
-                // Replace colors with gradient reference
-                coloredSvg = coloredSvg.replace(/#DD002B/g, `url(#${gradientId})`);
-                coloredSvg = coloredSvg.replace(/#DF002C/g, `url(#${gradientId})`);
-                coloredSvg = coloredSvg.replace(/#dd002b/gi, `url(#${gradientId})`);
+                // Replace colors with gradient reference - but only in fill attributes
+                coloredSvg = coloredSvg.replace(/fill="#DD002B"/g, `fill="url(#${gradientId})"`);
+                coloredSvg = coloredSvg.replace(/fill="#DF002C"/g, `fill="url(#${gradientId})"`);
+                coloredSvg = coloredSvg.replace(/fill="#dd002b"/gi, `fill="url(#${gradientId})"`);
                 
-                // Update display
-                colorValue.textContent = `${currentGradientStart} → ${currentGradientEnd}`;
-                colorName.textContent = 'Gradient';
+                // Replace colors with gradient reference only in fill attributes  
+                coloredSvg = coloredSvg.replace(/fill="#DD002B"/gi, `fill="url(#${gradientId})"`);
+                coloredSvg = coloredSvg.replace(/fill="#DF002C"/gi, `fill="url(#${gradientId})"`);
+                
+                // Clean up any visible hex code text that shouldn't be there
+                // Remove text elements containing hex codes
+                coloredSvg = coloredSvg.replace(/<text[^>]*>[^<]*#[0-9A-Fa-f]{6}[^<]*<\/text>/gi, '');
+                // Remove any standalone hex codes that appear as text content (not in attributes)
+                coloredSvg = coloredSvg.replace(/>(\s*)#[0-9A-Fa-f]{6}(\s*)</gi, '>$1$2<');
+                // Remove hex codes that might be inserted as loose text between elements
+                coloredSvg = coloredSvg.replace(/>\s*#[0-9A-Fa-f]{6}\s*#[0-9A-Fa-f]{6}\s*</gi, '><');
+                
+                // Hide display text when in gradient mode
+                colorValue.textContent = '';
+                colorName.textContent = '';
             } else {
                 // Regular solid color
                 coloredSvg = coloredSvg.replace(/#DD002B/g, color);

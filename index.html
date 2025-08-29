@@ -238,6 +238,89 @@
         .download-btn:hover {
             background: #2563eb;
         }
+        
+        .gradient-section {
+            margin-bottom: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #f3f4f6;
+        }
+        
+        .gradient-title {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 12px;
+        }
+        
+        .gradient-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .gradient-checkbox {
+            width: 16px;
+            height: 16px;
+            accent-color: #3b82f6;
+        }
+        
+        .gradient-label {
+            font-size: 0.875rem;
+            color: #374151;
+            cursor: pointer;
+        }
+        
+        .gradient-controls {
+            space-y: 16px;
+        }
+        
+        .gradient-colors {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .gradient-color-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+        }
+        
+        .gradient-color-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            min-width: 35px;
+        }
+        
+        .gradient-direction {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .gradient-direction-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            min-width: 60px;
+        }
+        
+        .gradient-select {
+            flex: 1;
+            padding: 8px 12px;
+            font-size: 0.875rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.2s;
+            background: white;
+        }
+        
+        .gradient-select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -288,6 +371,36 @@
                     <input type="text" id="hexInput" class="hex-input" value="#007AFF" placeholder="#007AFF">
                 </div>
             </div>
+
+            <!-- Gradient Section -->
+            <div class="gradient-section">
+                <div class="gradient-title">Gradient</div>
+                <div class="gradient-toggle">
+                    <input type="checkbox" id="gradientMode" class="gradient-checkbox">
+                    <label for="gradientMode" class="gradient-label">Enable Gradient</label>
+                </div>
+                <div class="gradient-controls" id="gradientControls" style="display: none;">
+                    <div class="gradient-colors">
+                        <div class="gradient-color-item">
+                            <label class="gradient-color-label">Start:</label>
+                            <input type="color" id="gradientStart" class="custom-color-input" value="#007AFF">
+                        </div>
+                        <div class="gradient-color-item">
+                            <label class="gradient-color-label">End:</label>
+                            <input type="color" id="gradientEnd" class="custom-color-input" value="#FF2D92">
+                        </div>
+                    </div>
+                    <div class="gradient-direction">
+                        <label class="gradient-direction-label">Direction:</label>
+                        <select id="gradientDirection" class="gradient-select">
+                            <option value="linear-vertical">Vertical</option>
+                            <option value="linear-horizontal">Horizontal</option>
+                            <option value="linear-diagonal">Diagonal</option>
+                            <option value="radial">Radial</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Download Button -->
@@ -309,6 +422,10 @@
         
         let currentColor = '#007AFF';
         let currentColorName = 'Blue';
+        let isGradientMode = false;
+        let currentGradientStart = '#007AFF';
+        let currentGradientEnd = '#FF2D92';
+        let currentGradientDirection = 'linear-vertical';
 
         // PASTE YOUR ENTIRE SVG CONTENT HERE (between the backticks)
         // Just copy everything from your file.svg and paste it below:
@@ -325,30 +442,75 @@
 </svg>
 `;
 
+        function createGradientDefinition(id, startColor, endColor, direction) {
+            let gradientDef = '';
+            switch(direction) {
+                case 'linear-vertical':
+                    gradientDef = `<linearGradient id="${id}" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:${startColor};stop-opacity:1" /><stop offset="100%" style="stop-color:${endColor};stop-opacity:1" /></linearGradient>`;
+                    break;
+                case 'linear-horizontal':
+                    gradientDef = `<linearGradient id="${id}" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:${startColor};stop-opacity:1" /><stop offset="100%" style="stop-color:${endColor};stop-opacity:1" /></linearGradient>`;
+                    break;
+                case 'linear-diagonal':
+                    gradientDef = `<linearGradient id="${id}" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:${startColor};stop-opacity:1" /><stop offset="100%" style="stop-color:${endColor};stop-opacity:1" /></linearGradient>`;
+                    break;
+                case 'radial':
+                    gradientDef = `<radialGradient id="${id}" cx="50%" cy="50%" r="50%"><stop offset="0%" style="stop-color:${startColor};stop-opacity:1" /><stop offset="100%" style="stop-color:${endColor};stop-opacity:1" /></radialGradient>`;
+                    break;
+            }
+            return gradientDef;
+        }
+
         function updateGoatColor(color, name = 'Custom') {
-            // Replace #DD002B (and other possible red colors) with the new color
-            let coloredSvg = svgTemplate.replace(/#DD002B/g, color);
-            coloredSvg = coloredSvg.replace(/#DF002C/g, color); // fallback for old color
-            coloredSvg = coloredSvg.replace(/#dd002b/gi, color); // case insensitive
-            goatContainer.innerHTML = coloredSvg;
+            let coloredSvg = svgTemplate;
             
-            // Update display
-            colorValue.textContent = color.toUpperCase();
-            colorName.textContent = name;
-            colorPicker.value = color;
-            hexInput.value = color.toUpperCase();
-            
-            // Update current values
-            currentColor = color;
-            currentColorName = name;
-            
-            // Update selected state
-            presetColors.forEach(preset => {
-                preset.classList.remove('selected');
-                if (preset.getAttribute('data-color').toUpperCase() === color.toUpperCase()) {
-                    preset.classList.add('selected');
+            if (isGradientMode) {
+                // Create gradient definition
+                const gradientId = 'goatGradient';
+                const gradientDef = createGradientDefinition(gradientId, currentGradientStart, currentGradientEnd, currentGradientDirection);
+                
+                // Add defs section with gradient if it doesn't exist
+                if (coloredSvg.includes('<defs>')) {
+                    coloredSvg = coloredSvg.replace('<defs>', `<defs>${gradientDef}`);
+                } else {
+                    coloredSvg = coloredSvg.replace('<svg', `<svg><defs>${gradientDef}</defs><svg`).replace('version="1.1" xmlns="http://www.w3.org/2000/svg"', '');
+                    coloredSvg = coloredSvg.replace('<svg>', '').replace('</svg><svg', '<svg version="1.1" xmlns="http://www.w3.org/2000/svg"');
                 }
-            });
+                
+                // Replace colors with gradient reference
+                coloredSvg = coloredSvg.replace(/#DD002B/g, `url(#${gradientId})`);
+                coloredSvg = coloredSvg.replace(/#DF002C/g, `url(#${gradientId})`);
+                coloredSvg = coloredSvg.replace(/#dd002b/gi, `url(#${gradientId})`);
+                
+                // Update display
+                colorValue.textContent = `${currentGradientStart} → ${currentGradientEnd}`;
+                colorName.textContent = 'Gradient';
+            } else {
+                // Regular solid color
+                coloredSvg = coloredSvg.replace(/#DD002B/g, color);
+                coloredSvg = coloredSvg.replace(/#DF002C/g, color);
+                coloredSvg = coloredSvg.replace(/#dd002b/gi, color);
+                
+                // Update display
+                colorValue.textContent = color.toUpperCase();
+                colorName.textContent = name;
+                colorPicker.value = color;
+                hexInput.value = color.toUpperCase();
+                
+                // Update current values
+                currentColor = color;
+                currentColorName = name;
+                
+                // Update selected state
+                presetColors.forEach(preset => {
+                    preset.classList.remove('selected');
+                    if (preset.getAttribute('data-color').toUpperCase() === color.toUpperCase()) {
+                        preset.classList.add('selected');
+                    }
+                });
+            }
+            
+            goatContainer.innerHTML = coloredSvg;
         }
 
         // Initialize with default color
@@ -371,10 +533,54 @@
         // Preset colors event listeners
         presetColors.forEach(preset => {
             preset.addEventListener('click', function() {
-                const color = this.getAttribute('data-color');
-                const name = this.getAttribute('data-name');
-                updateGoatColor(color, name);
+                if (!isGradientMode) {
+                    const color = this.getAttribute('data-color');
+                    const name = this.getAttribute('data-name');
+                    updateGoatColor(color, name);
+                }
             });
+        });
+
+        // Gradient controls
+        const gradientMode = document.getElementById('gradientMode');
+        const gradientControls = document.getElementById('gradientControls');
+        const gradientStart = document.getElementById('gradientStart');
+        const gradientEnd = document.getElementById('gradientEnd');
+        const gradientDirection = document.getElementById('gradientDirection');
+
+        gradientMode.addEventListener('change', function() {
+            isGradientMode = this.checked;
+            gradientControls.style.display = isGradientMode ? 'block' : 'none';
+            
+            if (isGradientMode) {
+                // Clear preset selection
+                presetColors.forEach(preset => preset.classList.remove('selected'));
+                updateGoatColor();
+            } else {
+                // Return to solid color
+                updateGoatColor(currentColor, currentColorName);
+            }
+        });
+
+        gradientStart.addEventListener('input', function() {
+            if (isGradientMode) {
+                currentGradientStart = this.value;
+                updateGoatColor();
+            }
+        });
+
+        gradientEnd.addEventListener('input', function() {
+            if (isGradientMode) {
+                currentGradientEnd = this.value;
+                updateGoatColor();
+            }
+        });
+
+        gradientDirection.addEventListener('change', function() {
+            if (isGradientMode) {
+                currentGradientDirection = this.value;
+                updateGoatColor();
+            }
         });
 
         // Download as PNG functionality
